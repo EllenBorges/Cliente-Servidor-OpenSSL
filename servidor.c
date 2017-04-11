@@ -8,6 +8,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <openssl/ssl.h>
+#include <openssl/bio.h>
 
 struct sockaddr_in set_myaddr(int port)
 {
