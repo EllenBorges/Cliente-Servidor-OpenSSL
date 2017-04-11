@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <openssl/ssl.h>
+#include <openssl/bio.h>
 
 #define MSG_LEN (64 *1024)
 
