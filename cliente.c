@@ -64,26 +64,28 @@ int main(int argc, char **argv)
     }
 
     ssl = SSL_new(ctx);
-    SSL_set_fd(ssl, server);    /* attach the socket descriptor */
-    if ( SSL_connect(ssl) == FAIL )   /* perform the connection */
+    SSL_set_fd(ssl, sfd);    /* attach the socket descriptor */
+    if ( SSL_connect(ssl) == -1 )   /* perform the connection */
         ERR_print_errors_fp(stderr);
     else{
 
         int ns, nr;
-        ns = send(sfd, argv[3], strlen(argv[3]), 0);
+        ns =  SSL_write(ssl, argv[3], strlen(argv[3]));
         if (ns < 0)
         {
-            perror("send(<arquivo_servidor>)");
+            perror("write(<arquivo_servidor>)");
             close(sfd);
+            SSL_free(ssl);
             return -1;
         }
 
         int cod_resp;
-        nr = recv(sfd, &cod_resp, sizeof(int), 0);
+        nr =  SSL_read(ssl, &cod_resp, sizeof(int));
         if (nr < 0)
         {
-            perror("recv(cod_resp)");
+            perror("read(cod_resp)");
             close(sfd);
+            SSL_free(ssl);
             return -1;
         }
 
@@ -91,6 +93,7 @@ int main(int argc, char **argv)
         {
             printf("sevidor: %s\n", strerror(cod_resp*-1));
             close (sfd);
+            SSL_free(ssl);
             return -1;
         }
 
@@ -100,6 +103,7 @@ int main(int argc, char **argv)
         {
             perror("open()");
             close (sfd);
+            SSL_free(ssl);
             return -1;
         }
 
@@ -108,13 +112,14 @@ int main(int argc, char **argv)
         {
             perror("calloc()");
             close (sfd);
+            SSL_free(ssl);
             return -1;
         }
         int nw;
         do
         {
             bzero(buff, MSG_LEN);
-            nr = recv(sfd, buff, MSG_LEN, 0);
+            nr = SSL_read(ssl, buff, MSG_LEN);
             if (nr > 0)
             {
                 nw = write(fd, buff, nr);
@@ -123,6 +128,7 @@ int main(int argc, char **argv)
                     perror("write(<buff>)");
                     close(sfd);
                     close(fd);
+                    SSL_free(ssl);
                     return -1;
                 }
             }
@@ -131,6 +137,7 @@ int main(int argc, char **argv)
                 perror("recv(<buff>)");
                 close(sfd);
                 close(fd);
+                SSL_free(ssl);
                 return -1;
             }
         }
@@ -139,5 +146,6 @@ int main(int argc, char **argv)
     }
     close(sfd);
     close(fd);
+    SSL_CTX_free(ctx); 
     return 0;
 }
