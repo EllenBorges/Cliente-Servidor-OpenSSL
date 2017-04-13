@@ -29,6 +29,41 @@ int main(int argc, char **argv)
         printf("uso: %s <porta_servidor>\n", argv[0]);
         return 0;
     }
+    
+    SSL_library_init();
+    SSL_CTX *ctx;
+    SSL_METHOD *metodo;
+    
+    //OpenSSL_add_all_algorithms();  /* load & register all cryptos, etc. */
+    SSL_load_error_strings();   /* load all error messages */
+    metodo = SSLv3_method();  /* create new server-method instance */
+    ctx = SSL_CTX_new(metodo);   /* create new context from method */
+    if ( ctx == NULL )
+    {
+        ERR_print_errors_fp(stderr);
+        return -1;
+    }
+    
+    char *certificado = "NOME DO CERTIFICADO GERADO"; 
+    
+    /* set the local certificate from CertFile */
+    if ( SSL_CTX_use_certificate_file(ctx, certificado , SSL_FILETYPE_PEM) <= 0 )
+    {
+        ERR_print_errors_fp(stderr);
+        return -1;
+    }
+    /* set the private key from KeyFile (may be the same as CertFile) */
+    if ( SSL_CTX_use_PrivateKey_file(ctx, certificado, SSL_FILETYPE_PEM) <= 0 )
+    {
+        ERR_print_errors_fp(stderr);
+        return -1;
+    }
+    /* verify private key */
+    if ( !SSL_CTX_check_private_key(ctx) )
+    {
+        fprintf(stderr, "Private key does not match the public certificate\n");
+        return -1;
+    }
 
     //SOCKET
     int lsfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -57,6 +92,7 @@ int main(int argc, char **argv)
     struct sockaddr_in caddr;
     char file_name[1024];
     int nr, ns, fd, cod_resp;
+    SSL *ssl;
     while (1)
     {
         socklen_t socklen = sizeof(struct sockaddr_in);
@@ -70,9 +106,20 @@ int main(int argc, char **argv)
         printf("Conectado com %s:%d\n",
                inet_ntoa(caddr.sin_addr),
                ntohs(caddr.sin_port));
+        ssl = SSL_new(ctx);              /* get new SSL state with context */
+        SSL_set_fd(ssl, csfd);      /* set connection socket to SSL state */
+       
         bzero(file_name, 1024);
-        //RECV
-        nr = recv(csfd, file_name, 1024, 0);
+        
+        if ( SSL_accept(ssl) == -1 )     /* do SSL-protocol accept */
+            ERR_print_errors_fp(stderr);
+        
+        //show certificados?
+        
+        
+        
+        //RECV or SSL_Read
+        nr = SSL_read(ssl, file_name, 1024);
         if (nr < 0)
         {
             perror("recv(<file_name>)");
@@ -84,7 +131,7 @@ int main(int argc, char **argv)
         {
             perror("open()");
             cod_resp = errno * -1;
-            if (send(csfd, &cod_resp, sizeof(int), 0) < 0)
+            if (SSL_write(ssl, &cod_resp, sizeof(int)) < 0)
             {
                 perror("send(<cod_resp>)");
                 continue;
@@ -92,7 +139,7 @@ int main(int argc, char **argv)
         }
         else
         {
-            if (send(csfd, &fd, sizeof(int), 0) < 0)
+            if (SSL_write(csfd, &fd, sizeof(int)) < 0)
             {
                 perror("send(<fd>)");
                 continue;
@@ -108,7 +155,7 @@ int main(int argc, char **argv)
                 close (csfd);
                 continue;
             }
-            ns = send(csfd, buff, nr, 0);
+            ns = SSL_write(csfd, buff, nr);
             if (ns < 0)
             {
                 perror("send(<buff>)");
@@ -117,8 +164,10 @@ int main(int argc, char **argv)
             }
         }
         while (nr > 0);
+        SSL_free(ssl);  
         close(csfd);
         close(fd);
+        SSL_CTX_free(ctx);         /* release context */
     }
     return 0;
 }
