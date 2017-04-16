@@ -29,11 +29,11 @@ int main(int argc, char **argv)
         printf("uso: %s <porta_servidor>\n", argv[0]);
         return 0;
     }
-    
+
     SSL_library_init();
     SSL_CTX *ctx;
     SSL_METHOD *metodo;
-    
+
     //OpenSSL_add_all_algorithms();  /* load & register all cryptos, etc. */
     SSL_load_error_strings();   /* load all error messages */
     metodo = SSLv3_method();  /* create new server-method instance */
@@ -43,9 +43,9 @@ int main(int argc, char **argv)
         ERR_print_errors_fp(stderr);
         return -1;
     }
-    
-    char *certificado = "NOME DO CERTIFICADO GERADO"; 
-    
+
+    char *certificado = "NOME DO CERTIFICADO GERADO";
+
     /* set the local certificate from CertFile */
     if ( SSL_CTX_use_certificate_file(ctx, certificado , SSL_FILETYPE_PEM) <= 0 )
     {
@@ -108,16 +108,16 @@ int main(int argc, char **argv)
                ntohs(caddr.sin_port));
         ssl = SSL_new(ctx);              /* get new SSL state with context */
         SSL_set_fd(ssl, csfd);      /* set connection socket to SSL state */
-       
+
         bzero(file_name, 1024);
-        
+
         if ( SSL_accept(ssl) == -1 )     /* do SSL-protocol accept */
             ERR_print_errors_fp(stderr);
-        
+
         //show certificados?
-        
-        
-        
+
+
+
         //RECV or SSL_Read
         nr = SSL_read(ssl, file_name, 1024);
         if (nr < 0)
@@ -164,7 +164,7 @@ int main(int argc, char **argv)
             }
         }
         while (nr > 0);
-        SSL_free(ssl);  
+        SSL_free(ssl);
         close(csfd);
         close(fd);
         SSL_CTX_free(ctx);         /* release context */
