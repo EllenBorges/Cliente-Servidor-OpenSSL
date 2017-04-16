@@ -30,20 +30,23 @@ int main(int argc, char **argv)
         return 0;
     }
     /* variveis */
-    SSL_library_init();
     SSL_CTX *ctx;
+    SSL *ssl;
     const SSL_METHOD * metodo;
-    SSL_load_error_strings();
-    metodo = SSLv3_method();
-    ctx = SSL_CTX_new(metodo);
     unsigned char buff[BLOCK_SIZE];
-    int csfd,nr, ns, fd, cod_resp;;
+    int lsfd,csfd,nr, ns, fd, cod_resp;
     struct sockaddr_in caddr;
     char file_name[1024];
-    SSL *ssl;
 
 
-    /* verifica certificado */
+    /*inicializa openssl*/
+    SSL_library_init();
+    SSL_load_error_strings();
+
+
+    /* cria contexto */
+    metodo = SSLv3_method();
+    ctx = SSL_CTX_new(metodo);
     if ( ctx == NULL )
     {
         perror(" SSL_CTX_new()");
@@ -72,7 +75,7 @@ int main(int argc, char **argv)
     }
 
     //SOCKET
-    int lsfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    lsfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (lsfd < 0)
     {
         perror("socket()");
@@ -175,7 +178,8 @@ int main(int argc, char **argv)
         SSL_free(ssl);
         close(csfd);
         close(fd);
-        SSL_CTX_free(ctx);
+
     }
+    SSL_CTX_free(ctx);
     return 0;
 }
