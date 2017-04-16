@@ -24,21 +24,24 @@ struct sockaddr_in server_addr(int port, char *addr)
 int main(int argc, char **argv)
 {
 
-    SSL_library_init();
-    SSL_METHOD *metodo;
-    SSL_CTX *ctx;
-    SSL *ssl;
-    int sfd,cod_resp, ns, nr,fd, nw;
-
-
     if (argc != 5)
     {
         printf("uso: %s <ip_servidor> <porta_servidor> <arquivo_servidor> <arquivo_destino>\n", argv[0]);
         return 0;
     }
 
+    /* variveis */
 
+    const SSL_METHOD * metodo;
+    SSL_CTX *ctx;
+    SSL *ssl;
+    int sfd,cod_resp, ns, nr,fd, nw;
+
+    /*inicializa  openssl*/
+    SSL_library_init();
     SSL_load_error_strings();
+
+    /* cria contexto */
     metodo = SSLv3_method();
     ctx = SSL_CTX_new(metodo);
     if ( ctx == NULL ){
@@ -72,7 +75,6 @@ int main(int argc, char **argv)
 
     else{
 
-
         ns =  SSL_write(ssl, argv[3], strlen(argv[3]));
         if (ns < 0)
         {
@@ -81,7 +83,6 @@ int main(int argc, char **argv)
             SSL_free(ssl);
             return -1;
         }
-
 
         nr =  SSL_read(ssl, &cod_resp, sizeof(int));
         if (nr < 0)
