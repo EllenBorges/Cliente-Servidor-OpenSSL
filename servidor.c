@@ -33,14 +33,13 @@ int main(int argc, char **argv)
     SSL_library_init();
     SSL_CTX *ctx;
     SSL_METHOD *metodo;
+    SSL_load_error_strings();
+    metodo = SSLv3_method();
+    ctx = SSL_CTX_new(metodo);
 
-    //OpenSSL_add_all_algorithms();  /* load & register all cryptos, etc. */
-    SSL_load_error_strings();   /* load all error messages */
-    metodo = SSLv3_method();  /* create new server-method instance */
-    ctx = SSL_CTX_new(metodo);   /* create new context from method */
     if ( ctx == NULL )
     {
-        ERR_print_errors_fp(stderr);
+        perror(" SSL_CTX_new()");
         return -1;
     }
 
@@ -49,13 +48,13 @@ int main(int argc, char **argv)
     /* set the local certificate from CertFile */
     if ( SSL_CTX_use_certificate_file(ctx, certificado , SSL_FILETYPE_PEM) <= 0 )
     {
-        ERR_print_errors_fp(stderr);
+        perror("SSL_CTX_use_certificate_file()");
         return -1;
     }
     /* set the private key from KeyFile (may be the same as CertFile) */
     if ( SSL_CTX_use_PrivateKey_file(ctx, certificado, SSL_FILETYPE_PEM) <= 0 )
     {
-        ERR_print_errors_fp(stderr);
+        perror("SSL_CTX_use_PrivateKey_file()");
         return -1;
     }
     /* verify private key */
@@ -111,8 +110,11 @@ int main(int argc, char **argv)
 
         bzero(file_name, 1024);
 
-        if ( SSL_accept(ssl) == -1 )     /* do SSL-protocol accept */
-            ERR_print_errors_fp(stderr);
+        if (SSL_accept(ssl) == -1 )     /* do SSL-protocol accept */
+        {
+            perror("SSL_accept()");
+            continue;
+        }
 
         //show certificados?
 
@@ -139,7 +141,8 @@ int main(int argc, char **argv)
         }
         else
         {
-            if (SSL_write(csfd, &fd, sizeof(int)) < 0)
+           // int SSL_write(SSL *ssl, const void *buf, int num);
+            if (SSL_write(ssl, &fd, sizeof(int)) < 0)
             {
                 perror("send(<fd>)");
                 continue;
@@ -155,7 +158,7 @@ int main(int argc, char **argv)
                 close (csfd);
                 continue;
             }
-            ns = SSL_write(csfd, buff, nr);
+            ns = SSL_write(ssl, buff, nr);
             if (ns < 0)
             {
                 perror("send(<buff>)");
