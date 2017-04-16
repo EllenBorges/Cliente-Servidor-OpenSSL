@@ -23,12 +23,12 @@ struct sockaddr_in server_addr(int port, char *addr)
 
 int main(int argc, char **argv)
 {
-	
-    int sfd, nw, fd,ns,nr,cod_resp;
+
     SSL_library_init();
     SSL_METHOD *metodo;
     SSL_CTX *ctx;
     SSL *ssl;
+    int sfd,cod_resp, ns, nr,fd, nw;
 
 
     if (argc != 5)
@@ -38,18 +38,15 @@ int main(int argc, char **argv)
     }
 
 
-
-
-   // OpenSSL_add_all_algorithms();  /* Load cryptos, et.al. */
     SSL_load_error_strings();
     metodo = SSLv3_method();
-    ctx = SSL_CTX_new(metodo);   /* Create new context */
+    ctx = SSL_CTX_new(metodo);
     if ( ctx == NULL ){
-        ERR_print_errors_fp(stderr);
+        perror("SSL_CTX_new()");
         return -1;
     }
 
-    int sfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    sfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sfd < 0)
     {
         perror("socket()");
@@ -65,12 +62,17 @@ int main(int argc, char **argv)
     }
 
     ssl = SSL_new(ctx);
-    SSL_set_fd(ssl, sfd);    /* attach the socket descriptor */
-    if ( SSL_connect(ssl) == -1 )   /* perform the connection */
-        ERR_print_errors_fp(stderr);
+    SSL_set_fd(ssl, sfd);
+    if ( SSL_connect(ssl) == -1 )
+    {
+        perror("sslconnect()");
+        return -1;
+
+    }
+
     else{
 
-        ns, nr;
+
         ns =  SSL_write(ssl, argv[3], strlen(argv[3]));
         if (ns < 0)
         {
@@ -80,11 +82,11 @@ int main(int argc, char **argv)
             return -1;
         }
 
-        cod_resp;
+
         nr =  SSL_read(ssl, &cod_resp, sizeof(int));
         if (nr < 0)
         {
-            perror("read(cod_resp)");
+            perror("sslread(cod_resp)");
             close(sfd);
             SSL_free(ssl);
             return -1;
@@ -92,13 +94,13 @@ int main(int argc, char **argv)
 
         if (cod_resp < 0)
         {
-            printf("sevidor: %s\n", strerror(cod_resp*-1));
+            printf("servidor: %s\n", strerror(cod_resp*-1));
             close (sfd);
             SSL_free(ssl);
             return -1;
         }
 
-        
+
         fd = open(argv[4], O_CREAT | O_RDWR | O_APPEND, 0644);
         if (fd < 0)
         {
@@ -116,7 +118,7 @@ int main(int argc, char **argv)
             SSL_free(ssl);
             return -1;
         }
-        
+
         do
         {
             bzero(buff, MSG_LEN);
@@ -143,11 +145,10 @@ int main(int argc, char **argv)
             }
         }
         while (nr > 0);
-        
+         close(fd);
 
     }
     close(sfd);
-    close(fd);
 
     SSL_CTX_free(ctx);
     return 0;
