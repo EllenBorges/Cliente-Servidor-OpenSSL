@@ -23,7 +23,8 @@ struct sockaddr_in server_addr(int port, char *addr)
 
 int main(int argc, char **argv)
 {
-
+	
+    int sfd, nw, fd,ns,nr,cod_resp;
     SSL_library_init();
     SSL_METHOD *metodo;
     SSL_CTX *ctx;
@@ -69,7 +70,7 @@ int main(int argc, char **argv)
         ERR_print_errors_fp(stderr);
     else{
 
-        int ns, nr;
+        ns, nr;
         ns =  SSL_write(ssl, argv[3], strlen(argv[3]));
         if (ns < 0)
         {
@@ -79,7 +80,7 @@ int main(int argc, char **argv)
             return -1;
         }
 
-        int cod_resp;
+        cod_resp;
         nr =  SSL_read(ssl, &cod_resp, sizeof(int));
         if (nr < 0)
         {
@@ -97,7 +98,7 @@ int main(int argc, char **argv)
             return -1;
         }
 
-        int fd;
+        
         fd = open(argv[4], O_CREAT | O_RDWR | O_APPEND, 0644);
         if (fd < 0)
         {
@@ -115,7 +116,7 @@ int main(int argc, char **argv)
             SSL_free(ssl);
             return -1;
         }
-        int nw;
+        
         do
         {
             bzero(buff, MSG_LEN);
@@ -142,10 +143,12 @@ int main(int argc, char **argv)
             }
         }
         while (nr > 0);
+        
 
     }
     close(sfd);
     close(fd);
-    SSL_CTX_free(ctx); 
+
+    SSL_CTX_free(ctx);
     return 0;
 }
