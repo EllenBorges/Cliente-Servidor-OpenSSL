@@ -29,14 +29,21 @@ int main(int argc, char **argv)
         printf("uso: %s <porta_servidor>\n", argv[0]);
         return 0;
     }
-
+    /* variveis */
     SSL_library_init();
     SSL_CTX *ctx;
-    SSL_METHOD *metodo;
+    const SSL_METHOD * metodo;
     SSL_load_error_strings();
     metodo = SSLv3_method();
     ctx = SSL_CTX_new(metodo);
+    unsigned char buff[BLOCK_SIZE];
+    int csfd,nr, ns, fd, cod_resp;;
+    struct sockaddr_in caddr;
+    char file_name[1024];
+    SSL *ssl;
 
+
+    /* verifica certificado */
     if ( ctx == NULL )
     {
         perror(" SSL_CTX_new()");
@@ -45,19 +52,19 @@ int main(int argc, char **argv)
 
     char *certificado = "NOME DO CERTIFICADO GERADO";
 
-    /* set the local certificate from CertFile */
+    /* configura local do certificado */
     if ( SSL_CTX_use_certificate_file(ctx, certificado , SSL_FILETYPE_PEM) <= 0 )
     {
         perror("SSL_CTX_use_certificate_file()");
         return -1;
     }
-    /* set the private key from KeyFile (may be the same as CertFile) */
+    /* configura chave privada */
     if ( SSL_CTX_use_PrivateKey_file(ctx, certificado, SSL_FILETYPE_PEM) <= 0 )
     {
         perror("SSL_CTX_use_PrivateKey_file()");
         return -1;
     }
-    /* verify private key */
+    /*verifica chave privada */
     if ( !SSL_CTX_check_private_key(ctx) )
     {
         fprintf(stderr, "Private key does not match the public certificate\n");
@@ -86,12 +93,7 @@ int main(int argc, char **argv)
         close (lsfd);
         return -1;
     }
-    unsigned char buff[BLOCK_SIZE];
-    int csfd;
-    struct sockaddr_in caddr;
-    char file_name[1024];
-    int nr, ns, fd, cod_resp;
-    SSL *ssl;
+
     while (1)
     {
         socklen_t socklen = sizeof(struct sockaddr_in);
@@ -105,19 +107,22 @@ int main(int argc, char **argv)
         printf("Conectado com %s:%d\n",
                inet_ntoa(caddr.sin_addr),
                ntohs(caddr.sin_port));
-        ssl = SSL_new(ctx);              /* get new SSL state with context */
-        SSL_set_fd(ssl, csfd);      /* set connection socket to SSL state */
 
+        /* obtem ssl atraves do contexto */
+        ssl = SSL_new(ctx);
+
+        /* Define o socket de conexão para o SSL */
+        SSL_set_fd(ssl, csfd);
         bzero(file_name, 1024);
 
-        if (SSL_accept(ssl) == -1 )     /* do SSL-protocol accept */
+        /* verificao ssl */
+        if (SSL_accept(ssl) == -1 )
         {
             perror("SSL_accept()");
             continue;
         }
 
         //show certificados?
-
 
 
         //RECV or SSL_Read
@@ -141,7 +146,7 @@ int main(int argc, char **argv)
         }
         else
         {
-           // int SSL_write(SSL *ssl, const void *buf, int num);
+
             if (SSL_write(ssl, &fd, sizeof(int)) < 0)
             {
                 perror("send(<fd>)");
@@ -170,7 +175,7 @@ int main(int argc, char **argv)
         SSL_free(ssl);
         close(csfd);
         close(fd);
-        SSL_CTX_free(ctx);         /* release context */
+        SSL_CTX_free(ctx);
     }
     return 0;
 }
