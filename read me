@@ -1,0 +1,1 @@
+gcc -Wall -o app app.c -lssl -lcrypto
